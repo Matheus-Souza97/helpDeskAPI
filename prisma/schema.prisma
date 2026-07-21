@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  admin
+  customer
+}
+
+enum StatusRole {
+  ativo
+  inativo
+}
+
+enum StatusTicketRole {
+  open
+  in_progress
+  closed
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(customer)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  tickets   Ticket[]
+
+  @@map("users")
+}
+
+model Support {
+  id                String             @id @default(uuid())
+  name              String
+  email             String             @unique
+  password          String
+  role              String             @default("support")
+  supportHours      String[]
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  ticketAssignments TicketAssignment[]
+
+  @@map("supports")
+}
+
+model Services {
+  id        String     @id @default(uuid())
+  name      String
+  amount    Decimal
+  status    StatusRole @default(ativo)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  @@map("services")
+}
+
+model Ticket {
+  id          String           @id @default(uuid())
+  name        String
+  description String
+  category    String
+  status      StatusTicketRole @default(open)
+  userId      String           @map("user_id")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  user             User              @relation(fields: [userId], references: [id])
+  ticketAssignment TicketAssignment?
+
+  @@map("ticket")
+}
+
+model TicketAssignment {
+  id        String   @id @default(uuid())
+  supportId String   @map("support_id")
+  ticketId  String   @unique @map("ticket_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  support Support @relation(fields: [supportId], references: [id])
+  ticket  Ticket  @relation(fields: [ticketId], references: [id])
+
+  @@map("ticket_assignments")
+}

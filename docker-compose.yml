@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: "postgres:17"
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qgwvx394
+      POSTGRES_DB: helpdesk
