@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { CATEGORIES } from "../utils/categories";
 import { prisma } from "../database/prisma";
-import { string, z } from "zod"
+import { z } from "zod"
 import { AppError } from "../utils/AppError";
 
 class CustomerTicketController{
@@ -26,14 +26,19 @@ class CustomerTicketController{
     const hour = ticket.createdAt.getHours().toString().padStart(2, "0") + ":00"
     
 
-    const supportDefine = await prisma.support.findFirst({
+    const supportDefine = await prisma.support.findMany({
       where: {
         supportHours: {
           has: hour
         }
       }, select: {
         id:true,
-        name:true
+        name:true,
+        ticketAssignments: {
+          select: {
+            id:true
+          }
+        }
       }
     })
 
@@ -41,8 +46,11 @@ class CustomerTicketController{
       throw new AppError("Nenhum tecnico disponivel no momento. Tente novamente mais tarde",400)
     }
 
-    const support_Id = supportDefine?.id
+    const support = supportDefine.sort((a, b) => a.ticketAssignments.length - b.ticketAssignments.length)[0]
+
+    const support_Id = support.id
     const ticket_Id = ticket.id
+
 
     await prisma.ticketAssignment.create({
       data: {
@@ -51,7 +59,9 @@ class CustomerTicketController{
       }
     })
 
-    return response.status(201).json({ticket, supportDefine})
+    
+
+    return response.status(201).json({ticket, supportDefine, support})
   }
   async index(request:Request, response:Response){
     const { id } = request.user!
