@@ -1,6 +1,6 @@
 import { Response, Request } from "express";
 import { AppError } from "../utils/AppError";
-import { boolean, z } from "zod"
+import { z } from "zod"
 import { prisma } from "../database/prisma";
 import { StatusRole } from "../../generated/prisma/enums";
 

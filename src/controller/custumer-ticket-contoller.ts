@@ -7,18 +7,35 @@ import { AppError } from "../utils/AppError";
 class CustomerTicketController{
   async create(request:Request, response:Response){
     const bodySchema = z.object({
-      name: z.string().min(15, "O nome da solicitacão deve ser mais especifico"),
+      name: z.string().min(5, "O nome da solicitacão deve ser mais especifico"),
       description: z.string().min(15, "Especifique a solicitacão com mais detalhes"),
       category: z.enum(CATEGORIES, "Categoria invalida")
     })
 
     const { name, description, category } = bodySchema.parse(request.body)
 
+    const price = await prisma.services.findFirst({where: {name: category}})
+
+    if(!price){
+      throw new AppError("Categoria não encontrada, infome uma categoria válida.",404)
+    }
+
+    console.log({
+      name,
+      description,
+      category,
+      initialPrice: price?.amount,
+      userId: request.user!.id,
+      price
+    })
+
     const ticket = await prisma.ticket.create({
       data: {
         name,
         description,
         category,
+        finalPrice: price.amount,
+        initialPrice: price.amount,
         userId: request.user!.id
       }
     })
@@ -55,13 +72,13 @@ class CustomerTicketController{
     await prisma.ticketAssignment.create({
       data: {
         supportId: support_Id,
-        ticketId: ticket_Id
+        ticketId: ticket_Id,
+        total: price.amount
       }
     })
 
     
-
-    return response.status(201).json({ticket, supportDefine, support})
+    return response.status(201).json({ticket, support})
   }
   async index(request:Request, response:Response){
     const { id } = request.user!
@@ -70,6 +87,7 @@ class CustomerTicketController{
       select: {
         ticketAssignment: {
           select: {
+            additionalServices:true,
             support: {
               select: {
                 name:true
@@ -80,12 +98,19 @@ class CustomerTicketController{
         description:true,
         category:true,
         status:true,
-        createdAt:true
+        initialPrice:true,
+        finalPrice:true,
+        createdAt:true,
       }
     
     })
 
-    return response.status(200).json(tickets)
+
+    const additionalServices = tickets.map(ticket => ({additional_services:ticket.ticketAssignment?.additionalServices}))
+
+    const result = tickets.map(ticket => ({support:ticket.ticketAssignment?.support.name, name:ticket.name, description:ticket.description, category:ticket.category, initialPrice:ticket.initialPrice, finalPrice:ticket.finalPrice,  stattus:ticket.status}))
+
+    return response.status(200).json(result)
   }
 }
 

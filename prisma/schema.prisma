@@ -62,14 +62,16 @@ model Services {
 }
 
 model Ticket {
-  id          String           @id @default(uuid())
-  name        String
-  description String
-  category    String
-  status      StatusTicketRole @default(open)
-  userId      String           @map("user_id")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
+  id           String           @id @default(uuid())
+  name         String
+  description  String
+  category     String
+  initialPrice Decimal?
+  finalPrice   Decimal?
+  status       StatusTicketRole @default(open)
+  userId       String           @map("user_id")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
 
   user             User              @relation(fields: [userId], references: [id])
   ticketAssignment TicketAssignment?
@@ -78,11 +80,13 @@ model Ticket {
 }
 
 model TicketAssignment {
-  id        String   @id @default(uuid())
-  supportId String   @map("support_id")
-  ticketId  String   @unique @map("ticket_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(uuid())
+  supportId          String   @map("support_id")
+  ticketId           String   @unique @map("ticket_id")
+  additionalServices String[]
+  total              Decimal?
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   support Support @relation(fields: [supportId], references: [id])
   ticket  Ticket  @relation(fields: [ticketId], references: [id])

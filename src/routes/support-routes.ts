@@ -9,5 +9,6 @@ const supportController = new SupportController()
 supportRoutes.use(ensureAuthenticated, verifyUserAuthorization(["support"]))
 
 supportRoutes.get("/", supportController.listAllTickets)
+supportRoutes.post("/:id", supportController.additionalServices)
 
 export { supportRoutes }
