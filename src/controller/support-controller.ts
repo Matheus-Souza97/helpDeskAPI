@@ -12,7 +12,7 @@ class SupportController{
       throw new AppError("Não autorizado!",403)
     }
 
-    const results = await prisma.ticketAssignment.findMany({where: {supportId:id},
+    const tickets = await prisma.ticketAssignment.findMany({where: {supportId:id},
       select: {
         id:true,
         ticket: {
@@ -38,7 +38,23 @@ class SupportController{
       }
     })
 
-    return response.status(200).json({results})
+    const additionalServices = tickets.flatMap(ticket => ticket.ticket.ticketAssignment?.additionalServices ?? [])
+
+    const services = await prisma.services.findMany({
+      where: {
+        name: {
+          in: additionalServices
+        }
+      }})
+
+      const serviceMap = new Map(
+        services.map(service => [service.name, Number(service.amount)])
+      )
+      
+
+    const result = tickets.map(ticket => ({id:ticket.id, name:ticket.ticket.name, description:ticket.ticket.description, cetegory:ticket.ticket.category, initialPrice:ticket.ticket.initialPrice, finalPrice:ticket.ticket.finalPrice, createdAt:ticket.ticket.createdAt, customer:ticket.ticket.user.name, additionalServices:ticket.ticket.ticketAssignment?.additionalServices.map(service => ({name:service, price:serviceMap.get(service)}))}))
+
+    return response.status(200).json({result})
   }
 
   async additionalServices(request:Request, response:Response){

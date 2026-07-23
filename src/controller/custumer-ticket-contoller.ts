@@ -106,9 +106,24 @@ class CustomerTicketController{
     })
 
 
-    const additionalServices = tickets.map(ticket => ({additional_services:ticket.ticketAssignment?.additionalServices}))
+    const additionalServices = tickets.flatMap(ticket => ticket.ticketAssignment?.additionalServices ?? [])
 
-    const result = tickets.map(ticket => ({support:ticket.ticketAssignment?.support.name, name:ticket.name, description:ticket.description, category:ticket.category, initialPrice:ticket.initialPrice, finalPrice:ticket.finalPrice,  stattus:ticket.status}))
+
+    const services = await prisma.services.findMany({
+      where: {
+        name: {
+          in: additionalServices
+        }
+      }
+    }) 
+
+    const serviceMap = new Map(
+      services.map(service => [service.name, Number(service.amount)])
+    )
+
+    const result = tickets.map(ticket => ({support:ticket.ticketAssignment?.support.name, name:ticket.name, description:ticket.description, category:ticket.category, initialPrice:ticket.initialPrice, finalPrice:ticket.finalPrice, stattus:ticket.status, additionalServices:ticket.ticketAssignment?.additionalServices.map(service => ({name:service, price: serviceMap.get(service)}))}))
+
+    
 
     return response.status(200).json(result)
   }
