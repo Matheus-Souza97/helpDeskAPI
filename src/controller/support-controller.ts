@@ -1,8 +1,9 @@
 import { AppError } from "../utils/AppError";
 import { Request, Response } from "express";
 import { prisma } from "../database/prisma";
-import { number, string, z } from "zod"
+import { z } from "zod"
 import { CATEGORIES } from "../utils/categories";
+import { StatusTicketRole } from "../../generated/prisma/enums";
 
 class SupportController{
   async listAllTickets(request:Request, response:Response){
@@ -22,9 +23,11 @@ class SupportController{
             description:true,
             initialPrice:true,
             finalPrice:true,
+            status:true,
             createdAt:true,
             ticketAssignment: {
               select: {
+                ticketId:true,
                 additionalServices:true
               }
             },
@@ -52,7 +55,7 @@ class SupportController{
       )
       
 
-    const result = tickets.map(ticket => ({id:ticket.id, name:ticket.ticket.name, description:ticket.ticket.description, cetegory:ticket.ticket.category, initialPrice:ticket.ticket.initialPrice, finalPrice:ticket.ticket.finalPrice, createdAt:ticket.ticket.createdAt, customer:ticket.ticket.user.name, additionalServices:ticket.ticket.ticketAssignment?.additionalServices.map(service => ({name:service, price:serviceMap.get(service)}))}))
+    const result = tickets.map(ticket => ({id:ticket.ticket.ticketAssignment?.ticketId, name:ticket.ticket.name, description:ticket.ticket.description, cetegory:ticket.ticket.category, status:ticket.ticket.status, initialPrice:ticket.ticket.initialPrice, finalPrice:ticket.ticket.finalPrice, createdAt:ticket.ticket.createdAt, customer:ticket.ticket.user.name, additionalServices:ticket.ticket.ticketAssignment?.additionalServices.map(service => ({name:service, price:serviceMap.get(service)}))}))
 
     return response.status(200).json({result})
   }
@@ -117,6 +120,35 @@ class SupportController{
     })
 
     return response.status(200).json({result, finalPrice})
+  }
+
+  async statusUpdated(request:Request, response:Response){
+    const paramsSchema = z.object({
+      id: z.string().uuid("ID invalido")
+    })
+
+    const { id } = paramsSchema.parse(request.params)
+
+    const ticket = await prisma.ticket.findUnique({where: {id}})
+
+    if(!ticket){
+      throw new AppError("Ticket não encontrado", 404)
+    }
+
+    const bodySchema = z.object({
+      status: z.enum(StatusTicketRole, "Informe um status")
+    })
+
+    const {status} = bodySchema.parse(request.body)
+
+    const ticketStatusUpdated = await prisma.ticket.update({
+      where: {id},
+      data: {
+        status: status
+      }
+    })
+
+    return response.status(200).json({status})
   }
   
 }
